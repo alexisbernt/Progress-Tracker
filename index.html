@@ -18,7 +18,7 @@ a{color:#21704e}.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}@media(
 <p><small>Entries are committed to your GitHub repository as CSV data. Each successful commit can count toward your GitHub contribution graph when repository and email eligibility rules are met.</small></p>
 <h2>Recent entries</h2><div id="history">Loading…</div>
 </div></main><script>
-const OWNER="YOUR_GITHUB_USERNAME",REPO="YOUR_REPOSITORY_NAME",BRANCH="main";
+const OWNER="YOUR_GITHUB_USERNAME",REPO="YOUR_REPOSITORY_NAME",BRANCH="main"; // UPDATE OWNER AND REPO
 const FILE="data/progress.csv";
 const $=id=>document.getElementById(id);
 $("date").value=new Date().toLocaleDateString("en-CA");
@@ -34,7 +34,7 @@ async function refresh(){try{showRows((await loadFile()).text)}catch(e){$("histo
 $("save").addEventListener("click",async()=>{const entry=$("entry").value.trim(),date=$("date").value,category=$("category").value;if(!entry||!date){$("status").textContent="Enter a sentence and date first.";return}
 const token=prompt("Paste a fine-grained GitHub token with Contents: Read and write permission for this repository. It is used only for this request and is not saved.");if(!token)return;
 $("save").disabled=true;$("status").textContent="Saving…";
-try{const old=await loadFile(token);const line=[date,category,entry].map(csvCell).join(",")+"\n";const updated=old.text.replace(/\s*$/,"\n")+line;const body={message:`Daily progress: ${date} (${category})`,content:encode64(updated),branch:BRANCH};if(old.sha)body.sha=old.sha;
+try{const old=await loadFile(token);const line=[date,category,entry].map(csvCell).join(",")+"\n";const updated=old.text.replace(/\s*$/, "\n")+line;const body={message:`Daily progress: ${date} (${category})`,content:encode64(updated),branch:BRANCH};if(old.sha)body.sha=old.sha;
 const res=await fetch(api,{method:"PUT",headers:{Accept:"application/vnd.github+json",Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
 if(!res.ok){const error=await res.json().catch(()=>({}));throw Error(error.message||`GitHub returned ${res.status}`)}
 $("entry").value="";$("status").textContent="✓ Saved and committed to GitHub.";showRows(updated)
