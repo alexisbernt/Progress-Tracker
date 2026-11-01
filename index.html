@@ -1,43 +1,363 @@
+
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Daily Growth Tracker</title><style>
-:root{font-family:system-ui,Arial;background:#f5f8f7;color:#18332c}*{box-sizing:border-box}
-main{max-width:850px;margin:55px auto;padding:25px}.card{background:white;padding:30px;border-radius:18px;box-shadow:0 8px 30px #1232}
-h1{margin-top:0}label{display:block;font-weight:650;margin:18px 0 8px}textarea,input,select{width:100%;padding:12px;border:1px solid #cad8d2;border-radius:9px;font:inherit}
-textarea{min-height:110px}button{border:0;border-radius:9px;background:#277e59;color:white;padding:13px 20px;font-weight:700;cursor:pointer;margin-top:18px}
-button:disabled{opacity:.5}small,.muted{color:#5e736b}#status{margin-top:15px}table{border-collapse:collapse;width:100%;margin-top:20px}td,th{text-align:left;padding:10px;border-bottom:1px solid #e2eae5}
-a{color:#21704e}.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}@media(max-width:600px){.row{grid-template-columns:1fr}}
-</style></head><body><main><div class="card">
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daily Growth Tracker</title>
+
+<style>
+:root {
+  font-family: system-ui, Arial;
+  background: #f5f8f7;
+  color: #18332c;
+}
+* { box-sizing: border-box; }
+
+main {
+  max-width: 850px;
+  margin: 55px auto;
+  padding: 25px;
+}
+
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px #1232;
+}
+
+h1 { margin-top: 0; }
+
+label {
+  display: block;
+  font-weight: 650;
+  margin: 18px 0 8px;
+}
+
+textarea, input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cad8d2;
+  border-radius: 9px;
+  font: inherit;
+}
+
+textarea { min-height: 110px; }
+
+button {
+  border: 0;
+  border-radius: 9px;
+  background: #277e59;
+  color: white;
+  padding: 13px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 18px 8px 0 0;
+}
+
+button:disabled { opacity: .5; }
+
+.secondary {
+  background: #e5eee9;
+  color: #18332c;
+}
+
+small, .muted { color: #5e736b; }
+
+#status { margin-top: 15px; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+}
+
+td, th {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e2eae5;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+@media(max-width:600px) {
+  .row { grid-template-columns: 1fr; }
+  main { margin: 15px auto; }
+  .card { padding: 20px; }
+}
+</style>
+</head>
+
+<body>
+<main>
+<div class="card">
+
 <h1>🌱 Daily Growth Tracker</h1>
-<p class="muted">One sentence a day. Consistent technical learning and creative growth.</p>
-<h3>Progress Tracker for technical learning and growth (UGC, outreach, podcast, content, articles, etc.)</h3>
-<label for="entry">What progress did you make today?</label><textarea id="entry" maxlength="2000" placeholder="Today I..."></textarea>
-<div class="row"><div><label for="category">Category</label><select id="category"><option>Technical learning</option><option>UGC</option><option>Outreach</option><option>Podcast</option><option>Content</option><option>Articles</option><option>Other</option></select></div>
-<div><label for="date">Date</label><input id="date" type="date"></div></div>
-<button id="save">Save progress to GitHub</button><p id="status" role="status"></p>
-<p><small>Entries are committed to your GitHub repository as CSV data. Each successful commit can count toward your GitHub contribution graph when repository and email eligibility rules are met.</small></p>
-<h2>Recent entries</h2><div id="history">Loading…</div>
-</div></main><script>
-const OWNER="YOUR_GITHUB_USERNAME",REPO="YOUR_REPOSITORY_NAME",BRANCH="main"; // UPDATE OWNER AND REPO
-const FILE="data/progress.csv";
-const $=id=>document.getElementById(id);
-$("date").value=new Date().toLocaleDateString("en-CA");
-const api=`https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
-const encoder=new TextEncoder(),decoder=new TextDecoder();
-function encode64(str){let bytes=encoder.encode(str),binary="";for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary)}
-function decode64(str){let binary=atob(str.replace(/\s/g,"")),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return decoder.decode(bytes)}
-function csvCell(v){return '"'+String(v).replace(/"/g,'""')+'"'}
-function parseCSV(text){const rows=[];let row=[],field="",quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(field);field=""}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(Boolean))rows.push(row);row=[];field=""}else field+=c}if(field||row.length){row.push(field);rows.push(row)}return rows}
-async function loadFile(token){const headers={Accept:"application/vnd.github+json"};if(token)headers.Authorization=`Bearer ${token}`;const response=await fetch(api+"?ref="+encodeURIComponent(BRANCH)+"&t="+Date.now(),{headers});if(response.status===404)return {sha:null,text:"date,category,entry\n"};if(!response.ok)throw Error("GitHub read failed: "+response.status);const data=await response.json();return {sha:data.sha,text:decode64(data.content)}}
-function showRows(text){const rows=parseCSV(text).slice(1).reverse().slice(0,20);$("history").replaceChildren();if(!rows.length){$("history").textContent="No entries yet.";return}const table=document.createElement("table");const header=document.createElement("tr");for(const h of ["Date","Category","Progress"]){const th=document.createElement("th");th.textContent=h;header.append(th)}table.append(header);for(const row of rows){const tr=document.createElement("tr");for(const cell of row.slice(0,3)){const td=document.createElement("td");td.textContent=cell;tr.append(td)}table.append(tr)}$("history").append(table)}
-async function refresh(){try{showRows((await loadFile()).text)}catch(e){$("history").textContent="Could not load history. Check the repository settings."}}
-$("save").addEventListener("click",async()=>{const entry=$("entry").value.trim(),date=$("date").value,category=$("category").value;if(!entry||!date){$("status").textContent="Enter a sentence and date first.";return}
-const token=prompt("Paste a fine-grained GitHub token with Contents: Read and write permission for this repository. It is used only for this request and is not saved.");if(!token)return;
-$("save").disabled=true;$("status").textContent="Saving…";
-try{const old=await loadFile(token);const line=[date,category,entry].map(csvCell).join(",")+"\n";const updated=old.text.replace(/\s*$/, "\n")+line;const body={message:`Daily progress: ${date} (${category})`,content:encode64(updated),branch:BRANCH};if(old.sha)body.sha=old.sha;
-const res=await fetch(api,{method:"PUT",headers:{Accept:"application/vnd.github+json",Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
-if(!res.ok){const error=await res.json().catch(()=>({}));throw Error(error.message||`GitHub returned ${res.status}`)}
-$("entry").value="";$("status").textContent="✓ Saved and committed to GitHub.";showRows(updated)
-}catch(e){$("status").textContent="Error: "+e.message}finally{$("save").disabled=false}});
-refresh();
-</script></body></html>
+
+<p class="muted">
+One sentence a day. Consistent technical learning and creative growth.
+</p>
+
+<h3>
+Progress Tracker for technical learning and growth
+(UGC, outreach, podcast, content, articles, etc.)
+</h3>
+
+<label for="entry">What progress did you make today?</label>
+<textarea id="entry" maxlength="2000"
+placeholder="Today I..."></textarea>
+
+<div class="row">
+<div>
+<label for="category">Category</label>
+<select id="category">
+<option>Technical learning</option>
+<option>UGC</option>
+<option>Outreach</option>
+<option>Podcast</option>
+<option>Content</option>
+<option>Articles</option>
+<option>Other</option>
+</select>
+</div>
+
+<div>
+<label for="date">Date</label>
+<input id="date" type="date">
+</div>
+</div>
+
+<button id="save">Save Progress</button>
+<button id="export" class="secondary">Download CSV</button>
+
+<p id="status" role="status"></p>
+
+<p>
+<small>
+Your entries are saved locally in your browser.
+Download your CSV regularly to keep an external backup.
+The CSV can be opened in Microsoft Excel or Google Sheets.
+</small>
+</p>
+
+<h2>Recent Entries</h2>
+<div id="history">Loading...</div>
+
+</div>
+</main>
+
+<script>
+
+// ===================================
+// 1. INITIAL SETTINGS
+// ===================================
+
+const $ = id => document.getElementById(id);
+
+const STORAGE_KEY = "dailyGrowthEntries";
+
+function getLocalDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60000)
+    .toISOString().split("T")[0];
+}
+
+$("date").value = getLocalDate();
+
+
+// ===================================
+// 2. LOAD SAVED ENTRIES
+// ===================================
+
+function getEntries() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(STORAGE_KEY) || "[]"
+    );
+  } catch (error) {
+    console.error("Could not read saved entries:", error);
+    return [];
+  }
+}
+
+
+// ===================================
+// 3. SAVE ENTRIES
+// ===================================
+
+function saveEntries(entries) {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(entries)
+  );
+}
+
+
+// ===================================
+// 4. DISPLAY RECENT ENTRIES
+// ===================================
+
+function showRows() {
+
+  const entries = getEntries()
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const history = $("history");
+  history.replaceChildren();
+
+  if (!entries.length) {
+    history.textContent = "No entries yet. Start growing!";
+    return;
+  }
+
+  const table = document.createElement("table");
+
+  const header = document.createElement("tr");
+
+  ["Date", "Category", "Progress"].forEach(title => {
+    const th = document.createElement("th");
+    th.textContent = title;
+    header.append(th);
+  });
+
+  table.append(header);
+
+  entries.slice(0, 20).forEach(entry => {
+
+    const tr = document.createElement("tr");
+
+    [entry.date, entry.category, entry.entry]
+      .forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.append(td);
+      });
+
+    table.append(tr);
+  });
+
+  history.append(table);
+}
+
+
+// ===================================
+// 5. SAVE A DAILY PROGRESS ENTRY
+// ===================================
+
+$("save").addEventListener("click", () => {
+
+  const entry = $("entry").value.trim();
+  const category = $("category").value;
+  const date = $("date").value;
+
+  if (!entry || !date) {
+    $("status").textContent =
+      "Please enter your progress and date.";
+    return;
+  }
+
+  try {
+
+    const entries = getEntries();
+
+    entries.push({
+      date: date,
+      category: category,
+      entry: entry
+    });
+
+    saveEntries(entries);
+
+    $("entry").value = "";
+
+    $("status").textContent =
+      "✓ Progress saved successfully! Keep growing.";
+
+    showRows();
+
+  } catch (error) {
+
+    $("status").textContent =
+      "Error saving progress: " + error.message;
+
+  }
+
+});
+
+
+// ===================================
+// 6. EXPORT ALL ENTRIES TO CSV
+// ===================================
+
+function csvCell(value) {
+  return '"' +
+    String(value).replace(/"/g, '""') +
+    '"';
+}
+
+$("export").addEventListener("click", () => {
+
+  const entries = getEntries();
+
+  if (!entries.length) {
+    $("status").textContent =
+      "No entries available to export.";
+    return;
+  }
+
+  const headers = ["Date", "Category", "Progress"];
+
+  const rows = entries.map(entry => [
+    entry.date,
+    entry.category,
+    entry.entry
+  ]);
+
+  const csv = [
+    headers,
+    ...rows
+  ]
+    .map(row => row.map(csvCell).join(","))
+    .join("\r\n");
+
+  // Create downloadable CSV file
+
+  const blob = new Blob(
+    ["\uFEFF" + csv],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "daily-growth-progress.csv";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+
+  $("status").textContent =
+    "✓ CSV downloaded successfully!";
+
+});
+
+
+// ===================================
+// 7. LOAD HISTORY ON PAGE OPEN
+// ===================================
+
+showRows();
+
+</script>
+</body>
+</html>
